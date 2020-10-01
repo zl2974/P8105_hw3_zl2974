@@ -1,0 +1,68 @@
+---
+title: "Untitled"
+author : "Jeffrey Liang"
+date : "10/02/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rnoaa)
+library(ggridges)
+library(patchwork) # use to multi plot, plt1 + (pl2 + plt3) / plt4
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d 
+```
+
+
+# Problem 1
+```{r}
+library(p8105.datasets)
+data("instacart")
+
+```
+
+
+# Problem 2
+## Load data
+
+```{r}
+accelerometer =
+  read_csv(here::here("data/accel_data.csv")) %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(
+    cols = starts_with("activity_"),
+    names_to = 'min',
+    values_to = "activity",
+    names_prefix = "activity_"
+  ) %>% 
+  mutate_at(c("min"),as.numeric) %>% 
+  mutate(weekday_vs_weekend = day %in% c("Sunday","Saturday"),
+         weekday_vs_weekend=
+           case_when(weekday_vs_weekend ~"weekend",
+                     !weekday_vs_weekend ~ "weekday") %>% 
+           as.factor())
+str(accelerometer)
+skimr::skim_without_charts(accelerometer)
+```
+\ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is build on _day_id_ and result into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
+
+
+
+
