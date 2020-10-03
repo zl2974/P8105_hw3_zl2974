@@ -63,6 +63,14 @@ skimr::skim_without_charts(accelerometer)
 ```
 \ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is build on _day_id_ and result into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
 
+* Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
+
+```{r total_activity, warning=F}
+accelerometer %>% 
+  group_by(day_id) %>% 
+  summarise(daily_activity = sum(activity,na.rm=T)) %>% 
+  knitr::kable()
+```
 
 
 
