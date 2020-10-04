@@ -3,6 +3,7 @@ title: "Untitled"
 author : "Jeffrey Liang"
 date : "10/02/2020"
 output: github_document
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
@@ -57,9 +58,26 @@ accelerometer =
          weekday_vs_weekend=
            case_when(weekday_vs_weekend ~"weekend",
                      !weekday_vs_weekend ~ "weekday") %>% 
-           as.factor())
+           as.factor(),
+         week = as.character(week) %>% forcats::fct_relevel(as.character(1:5)),
+         day = forcats::fct_relevel(day,c("Monday","Tuesday","Wednesday","Thursday",
+                                     "Friday", "Saturday","Sunday"))
+         ) %>% 
+  group_by(week) %>% 
+  arrange(day,.by_group=T) %>% 
+  mutate(min_week = 1, 
+         min_week=cumsum(min_week),
+         hour_week = min_week%/%60) %>% 
+  ungroup() %>% 
+  select(-day_id) %>% 
+  left_join(
+    distinct(.,week,day,) %>% 
+      ungroup() %>% 
+      mutate(day_id = 1,day_id = cumsum(day_id))
+  )
+# TODO: day_id is not in order
 str(accelerometer)
-skimr::skim_without_charts(accelerometer)
+skimr::skim(accelerometer)
 ```
 \ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is build on _day_id_ and result into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
 
@@ -70,7 +88,78 @@ accelerometer %>%
   group_by(day_id) %>% 
   summarise(daily_activity = sum(activity,na.rm=T)) %>% 
   knitr::kable()
+# TODO: hwo to make this table clean and nice? definatly not janitor, this is continuous
+```
+
+* Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+Problem 3
+
+```{r activity_plot,fig.height=16,fig.width=8}
+accelerometer %>% 
+  filter(activity>1) %>% 
+  group_by(week,day_id,hour_week) %>% 
+  summarise(activity_hr = sum(activity,na.rm=T)) %>% 
+  ggplot(aes(x=hour_week,y=activity_hr,color=week))+
+  geom_point(alpha = 0.5)+
+  geom_smooth(se=F,method = 'gam' )+
+  geom_line()+
+  scale_y_continuous(trans = "log")
+
+accelerometer %>% 
+  filter(activity>1) %>% 
+  ggplot(aes(x=min_week,y=week,fill=activity))+
+  geom_tile(size=1.5, stat="identity")
+
+# How to decently present the data in here?
+#try plotly
+hmp = 
+  accelerometer %>% 
+  group_by(hour_week,week,day) %>% 
+  summarise(activity = sum(activity)) %>% 
+  select(week,day,activity,hour_week) %>% 
+  plotly::plot_ly(x=~hour_week,y=~week,z=~activity,type="heatmap",
+                  colors = viridis::viridis_pal(option ="B")(3),
+                  height = 3, width = 1500,
+                  hoverinfo = 'text', 
+                  text = ~paste("Hour:",.$hour_week,
+                                "Week:",pull(.,week),
+                                "Activity:",pull(.,activity)
+                               ))
 ```
 
 
+# Problem 3
+```{r load_noaa,eval=F}
+data("ny_noaa")
+tryCatch(
+  {ny_noaa_tidy = read_csv(here::here("data/ny_noaa_tidy.csv"))},
+  error ={
+    ny_noaa_tidy = ny_noaa %>% 
+    separate(date,
+             into=c("year","month","day"),sep="-") %>%
+    mutate(across(year:tmin,as.numeric)) %>% 
+    mutate(
+      snow = case_when(
+      snow <0 ~0))
+  write_csv(ny_noaa_tidy,here::here("data/ny_noaa_tidy.csv"))})
+skimr::skim(ny_noaa_tidy)
+```
+
+* Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r plot_2_panel_max,eval=F}
+ny_noaa_tidy %>% 
+  filter(as.numeric(month) %in% c(1,7)) %>% 
+  mutate(day = as.factor(day),
+         month = month.name[month]) %>% 
+  ggplot(aes(x = day, y = tmax, color = month)) +
+  geom_boxplot(outlier.size = 0.5,
+               outlier.alpha = 0.5)+
+  #scale_color_viridis_d(option = "E",name = "Month")+
+  facet_wrap(.~month,ncol = 1)+
+  scale_y_continuous(position = "right",
+                     name = "Highest Temperature of the Day")+
+  scale_x_discrete(breaks = seq(1,31,5),
+                   name = "Day of Month")
+```
 
