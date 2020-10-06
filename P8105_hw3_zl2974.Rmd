@@ -104,10 +104,10 @@ accelerometer =
   arrange(day,.by_group=T) %>% 
   group_by(day_id) %>% 
   mutate(min_week = 1,
-         hour_day = cumsum(min_week)%/%60) %>% 
+         hour_day = cumsum(min_week)%/%30/2) %>% 
   ungroup(day_id) %>% 
   mutate(min_week=cumsum(min_week),
-         hour_week = min_week%/%60) %>% 
+         hour_week = min_week%/%30/2) %>% 
   ungroup() %>% 
   select(-day_id) %>% 
   left_join(
@@ -117,7 +117,7 @@ accelerometer =
   )
 # TODO: day_id is not in order
 str(accelerometer)
-skimr::skim(accelerometer)
+skimr::skim_without_charts(accelerometer)
 ```
 \ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is build on _day_id_ and result into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
 
@@ -137,7 +137,7 @@ accelerometer %>%
 * Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 Problem 3
 
-```{r activity_plot,fig.height=8,fig.width=12}
+```{r activity_plot,fig.height=8,fig.width=12,message=F}
 accelerometer %>% 
   group_by(week,day_id,hour_day) %>% 
   summarise(activity_hr = sum(activity,na.rm=T)) %>% 
@@ -158,10 +158,13 @@ accelerometer %>%
 
 # Problem 3
 ```{r load_noaa,eval=F}
-data("ny_noaa")
+read_ny_noaa = function(){
+ny_noaa_tidy = read_csv(here::here("data/ny_noaa_tidy.csv"))
 tryCatch(
-  {ny_noaa_tidy = read_csv(here::here("data/ny_noaa_tidy.csv"))},
+  {is.tibble(ny_noaa_tidy)},
   error ={
+    print("Can't load data")
+    data("ny_noaa")
     ny_noaa_tidy = ny_noaa %>% 
     separate(date,
              into=c("year","month","day"),sep="-") %>%
@@ -169,7 +172,11 @@ tryCatch(
     mutate(
       snow = case_when(
       snow <0 ~0))
-  write_csv(ny_noaa_tidy,here::here("data/ny_noaa_tidy.csv"))})
+  #write_csv(ny_noaa_tidy,here::here("data/ny_noaa_tidy.csv"))
+    })
+return(ny_noaa_tidy)
+}
+ny_noaa_tidy = read_ny_noaa()
 skimr::skim(ny_noaa_tidy)
 ```
 
