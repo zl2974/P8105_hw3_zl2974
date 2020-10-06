@@ -36,8 +36,45 @@ scale_fill_discrete = scale_fill_viridis_d
 ```{r}
 library(p8105.datasets)
 data("instacart")
-
+str(instacart)
 ```
+```{r p1_exploring,fig.height=32,fig.width=8}
+instacart %>% 
+  count(aisle,name = "n_count") %>% 
+  arrange(desc(n_count))
+
+instacart %>% 
+  group_by(aisle) %>% 
+  filter(n()>1e+4) %>%
+  mutate(counts = n(),
+         aisle = forcats::fct_reorder(as.factor(aisle),counts,max)) %>% 
+  ggplot(aes(y = aisle,fill = aisle)) +
+  geom_bar()+
+  scale_x_continuous(trans = "sqrt")+
+  theme(legend.position = "none")
+
+for (aisle_ in c("baking ingredients","dog food care","packaged vegetables fruits")){
+instacart %>% 
+  filter(aisle %in% c(aisle_)) %>%
+  count(aisle,product_name) %>% 
+  slice_max(n,n=3) %>% 
+  left_join(instacart) %>% 
+    janitor::tabyl(aisle,product_name) %>% 
+    print()
+}
+
+instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples","Coffee Ice Cream")) %>% 
+  group_by(product_name,order_dow) %>% 
+  summarise(avg_order_hour_of_day = mean(order_hour_of_day,na.rm = T)) %>% 
+  pivot_wider(names_from = order_dow,
+              names_prefix = "avg_order_hour_of_day_week_",
+              values_from = avg_order_hour_of_day) %>% 
+  ungroup() %>% 
+  t()
+```
+
+
 
 
 # Problem 2
@@ -65,8 +102,11 @@ accelerometer =
          ) %>% 
   group_by(week) %>% 
   arrange(day,.by_group=T) %>% 
-  mutate(min_week = 1, 
-         min_week=cumsum(min_week),
+  group_by(day_id) %>% 
+  mutate(min_week = 1,
+         hour_day = cumsum(min_week)%/%60) %>% 
+  ungroup(day_id) %>% 
+  mutate(min_week=cumsum(min_week),
          hour_week = min_week%/%60) %>% 
   ungroup() %>% 
   select(-day_id) %>% 
@@ -83,10 +123,13 @@ skimr::skim(accelerometer)
 
 * Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
 
-```{r total_activity, warning=F}
+```{r total_activity, warning=F, message=F}
 accelerometer %>% 
-  group_by(day_id) %>% 
+  group_by(week,day) %>% 
   summarise(daily_activity = sum(activity,na.rm=T)) %>% 
+  pivot_wider(names_from = week,
+              names_prefix = "week ",
+              values_from = daily_activity) %>% 
   knitr::kable()
 # TODO: hwo to make this table clean and nice? definatly not janitor, this is continuous
 ```
@@ -94,37 +137,22 @@ accelerometer %>%
 * Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 Problem 3
 
-```{r activity_plot,fig.height=16,fig.width=8}
+```{r activity_plot,fig.height=8,fig.width=12}
 accelerometer %>% 
-  filter(activity>1) %>% 
-  group_by(week,day_id,hour_week) %>% 
+  group_by(week,day_id,hour_day) %>% 
   summarise(activity_hr = sum(activity,na.rm=T)) %>% 
-  ggplot(aes(x=hour_week,y=activity_hr,color=week))+
-  geom_point(alpha = 0.5)+
-  geom_smooth(se=F,method = 'gam' )+
-  geom_line()+
-  scale_y_continuous(trans = "log")
+  ggplot(aes(x=hour_day,y=day_id,fill=activity_hr))+
+  geom_tile(aes(height = .93,width = .93),size = 2, stat="identity")+
+  scale_y_continuous(breaks = seq(3,31,7),
+                   labels = c(str_c("week",c(1:5))),
+                   position = "left",
+                   name = '')+
+  scale_x_continuous(breaks = seq(0,24,6),
+                     name = "Hour of day")+
+  theme(legend.position = "right")+
+  viridis::scale_fill_viridis(option = "C",
+                              name = "Hourly Activities")
 
-accelerometer %>% 
-  filter(activity>1) %>% 
-  ggplot(aes(x=min_week,y=week,fill=activity))+
-  geom_tile(size=1.5, stat="identity")
-
-# How to decently present the data in here?
-#try plotly
-hmp = 
-  accelerometer %>% 
-  group_by(hour_week,week,day) %>% 
-  summarise(activity = sum(activity)) %>% 
-  select(week,day,activity,hour_week) %>% 
-  plotly::plot_ly(x=~hour_week,y=~week,z=~activity,type="heatmap",
-                  colors = viridis::viridis_pal(option ="B")(3),
-                  height = 3, width = 1500,
-                  hoverinfo = 'text', 
-                  text = ~paste("Hour:",.$hour_week,
-                                "Week:",pull(.,week),
-                                "Activity:",pull(.,activity)
-                               ))
 ```
 
 
