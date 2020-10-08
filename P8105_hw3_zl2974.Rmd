@@ -25,7 +25,8 @@ theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
   ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
+  ggplot2.continuous.fill = "viridis",
+  digits = 3
 )
 
 scale_colour_discrete = scale_colour_viridis_d
@@ -98,28 +99,34 @@ accelerometer =
            case_when(weekday_vs_weekend ~"weekend",
                      !weekday_vs_weekend ~ "weekday") %>% 
            as.factor(),
-         week = as.character(week) %>% forcats::fct_relevel(as.character(1:5)),
-         day = forcats::fct_relevel(day,c("Monday","Tuesday","Wednesday","Thursday",
+         week = as.character(week) %>%
+           forcats::fct_relevel(as.character(1:5)),
+         day = forcats::fct_relevel(day,
+                                    c("Monday","Tuesday","Wednesday","Thursday",
                                      "Friday", "Saturday","Sunday"))
          ) %>% 
   group_by(week) %>% 
   arrange(day,.by_group=T) %>% 
   group_by(day_id) %>% 
   mutate(min_week = 1,
-         hour_day = cumsum(min_week)%/%30/2) %>% 
+         hour_day = 
+           cumsum(min_week)%/%30/2) %>% 
   ungroup(day_id) %>% 
-  mutate(min_week=cumsum(min_week),
-         hour_week = min_week%/%30/2) %>% 
+  mutate(min_week=
+           cumsum(min_week),
+         hour_week =
+           min_week%/%30/2) %>% 
   ungroup() %>% 
   select(-day_id) %>% 
   left_join(
     distinct(.,week,day,) %>% 
       ungroup() %>% 
-      mutate(day_id = 1,day_id = cumsum(day_id))
+      mutate(day_id = 1,
+             day_id = cumsum(day_id))
   )
 skimr::skim_without_charts(accelerometer)
 ```
-\ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is build on _day_id_ and result into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
+\ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is built on _day_ and producing factor columns with levels of `r levels(pull(accelerometer, weekday_vs_weekend))`. With careful examine, the _day_id_'s order is not correct, a new column of _day_id_ follow chronological order generated with _week_ and reordered factors _day_. Also for convenient, _hour_ of the day and _hour_week_ of the week were produced with cumsum() function. All changes resulted the data into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
 
 * Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
 
@@ -131,8 +138,9 @@ accelerometer %>%
               names_prefix = "week ",
               values_from = daily_activity) %>% 
   knitr::kable()
-# TODO: hwo to make this table clean and nice? definatly not janitor, this is continuous
 ```
+
+\ A 7 by 5 table is produced. Noticing that the subject had 2 exceptional low activity on Saturday on week 4 and 5 inmediately.
 
 * Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 
@@ -145,18 +153,26 @@ accelerometer %>%
              y= activity_hr,
              color = day,
              group = day_id))+
-  geom_smooth(se = F)+
+  stat_smooth(se = F,
+              geom="line",
+              alpha =0.5)+
   scale_y_continuous(trans = "sqrt",
-                     name = "Hourly Activities")+
-  scale_x_continuous(name = "Time")+
+                     name = "Hourly Activities",
+                     breaks = c(2000,10000,20000))+
+  scale_x_continuous(name = "Time",
+                     limits = c(0,24),
+                     breaks = seq(0,24,6))+
   viridis::scale_color_viridis(discrete = T,
                                name = "")+
   guides(color=guide_legend(nrow=1,
                             byrow=TRUE))+
   labs(
-    title = "Hourly activities in 35 days"
+    title = "Smooth Line for Hourly activities in 35 days",
+    caption = "fig.2.1"
   )
 ```
+
+\ A smooth line plot of 24hr activities is made, most of the lines are overlapping indicate some general pattern of the subject's daily routine: activities peak after 8 am and start decreasing after 6 pm. Few outliers were observed as well, some Saturday's activities are unfluctuated, and some sunday's activities and monday's as well as Friday's peak later than the most of other days'.
 
 
 ```{r activity_plot,fig.height=6,fig.width=8,message=F}
@@ -179,11 +195,13 @@ accelerometer %>%
                               name = "Hourly\nActivities",
                               trans = "sqrt")+
   labs(
-    title = "Hourly activities in 35 days"
+    title = "Hourly activities in 35 days",
+    caption = "fig.2.2"
   )
 
 ```
 
+\ To display more information, a heatmap is made. In Week 1, the first few days show less changes in activities between hour compared to the following weeks, especially the first day of week 1, the researcher can look into if the subject have the equipment gear up properly. In the following weeks, subject has his/her first peek of activities around 6-10, and following the second peek around 20. The activities on Saturday on week 4 and 5 show no changes in the heatmap, coherent with the finding in 7 by 5 table. The sunday in weeks 4 and 5 and the Firday in week 4 show less activities, accordinates with the outliers displayed in Fig.2.2.
 
 # Problem 3
 ```{r load_noaa}
@@ -210,10 +228,9 @@ return(ny_noaa_tidy)
 }
 ny_noaa_tidy = read_ny_noaa()
 skimr::skim_without_charts(ny_noaa_tidy %>% select(-id))
-
 ```
-
-\ Most common observation of _snow_ is 0 omitting Na value, which representing no snow in that day.
+\ The data of NYC's noaa is a tidy `r paste(dim(ny_noaa_tidy),collapse = "x ")` data in term's of structure, collecting data from `r min(pull(ny_noaa_tidy, date))` to 
+`r max(pull(ny_noaa_tidy, date))` of `r n_distinct(pull(ny_noaa_tidy,id))` stations. But missing value in _tmax_ and _tmin_ have exceed 40% and around 20% in _prcp_ and _snow_ columns, in other words, simplily omitting NA will drop at least 40% of the data. Impossible outlier is observed in _snow_, which most common observation is 0 after omitting Na value, which can be interpret as no snow in that day. Across 3 decades, the mean of highest temperature is 14.0 celcious and mean lowest of 3.03 celcious. 
 
 * Make a two-panel plot showing the average max temperature in January and in July in *each station* across years. Is there any observable / interpretable structure? Any outliers?
 
@@ -236,7 +253,7 @@ ny_noaa_tidy %>%
         axis.title.x = element_blank())+
   scale_x_discrete(labels = c())+
   labs(title = "Average Highest Temperature in January and July from 1981-2010",
-       y = "Average Highest Temperature in Janurary")
+       y = "Average Highest Temperature in January")
 
 plt_2 =
   ny_noaa_tidy %>% 
@@ -258,8 +275,12 @@ plt_2 =
 plt_1 / plt_2
 ```
 
+\ January's average Highest temperatures observed in NYC across all stations differs around 10 degrees across the time. Two exceptional cold years in terms of highest temperature are observed in all station in 
+`r ny_noaa_tidy %>% filter(month == 1)%>% group_by(year) %>% summarise(tmax = (mean(tmax,na.rm = T))) %>% mutate(rank = min_rank(tmax)) %>% slice_min(rank,n=2) %>% pull(year) %>% paste(collapse=" and ")`
+. \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. 2 lower and 3 upper outliers were observed in January in 3 decades, 8 lower outliers were observed in July.
 
-```{r tmax_vs_tmin, eval = F}
+
+```{r tmax_vs_tmin, eval = F, include=F}
 ny_noaa_tidy %>% 
   filter(as.numeric(month) %in% c(1,7)) %>% 
   mutate(day = as.factor(day),
@@ -288,9 +309,7 @@ plt_1=
                    ymin = tmin),
                na.rm=T)+
     theme(legend.position = 'none')+
-    scale_x_date(name = '')
-    #geom_point(aes(y = tmax),shape = 6)+
-    #geom_point(aes(y = tmin),shape = 2)
+    theme(axis.title.x = element_blank())
 
 plt_2=
   ny_noaa_tidy %>%
@@ -305,15 +324,13 @@ plt_2=
     geom_linerange(aes(ymax = tmax,
                    ymin = tmin),
                na.rm=T)+
-    scale_x_date(name = '')
-    #geom_point(aes(y = tmax),shape = 6)+
-    #geom_point(aes(y = tmin),shape = 2)
+    labs(caption = "Fig 3.1")
 
 show(plt_1/plt_2)
 ```
 
 
-```{r, echo = F, eval = F}
+```{r, echo = F, eval = F, include=F}
   ny_noaa_tidy %>%
     mutate(date = lubridate::floor_date(date, unit = "month")) %>% 
     group_by(year,month,date) %>% 
@@ -361,7 +378,8 @@ ny_noaa_tidy %>%
     viridis::scale_color_viridis(discrete = T,
                                  option = "D",
                                  name = "Observation")+
-    labs(y = "Temperature(C)")
+    labs(y = "Temperature(C)",
+         caption = "Fig 3.2")
 
 plt_2 = 
 ny_noaa_tidy %>% 
@@ -374,7 +392,7 @@ ny_noaa_tidy %>%
                       rel_min_height = 0.15)+
   theme(axis.title.x = element_blank())+
   scale_x_continuous(trans = "log",
-                     breaks = seq(0,100,30),
+                     breaks = c(5, 15,40, 100),
                      position = "top")+
   coord_flip()+
   labs(title = "Density for snowfall and Boxplot for Temperature from 1908 to 2010",
@@ -382,3 +400,4 @@ ny_noaa_tidy %>%
 (plt_2 / plt_1)+ plot_layout(guides = 'collect',widths = 8, heights = 16)
 ```
 
+\ Grouped Boxplot is used to show pattern and extreme tempertures in the whole dataset. Although mean and IQR of the lowest and highest temperatures haven't showed any sign of global warming, extreme lowest temperature is occurring less often in 2000s compared to before 2000. Density ridges with flipped coordinate is use to show snowfall pattern. The kernel density becomes flatten in 2009 and 2010. Also, light snowfall(<=10 mm) is taking higher proportion of total snowfall. So, some evidence might lying in this data.
