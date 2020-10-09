@@ -3,3 +3,7 @@
 .RData
 .Ruserdata
 course_practice.Rmd
+course_practice.html
+/bak/*
+/data/*
+*.bak
