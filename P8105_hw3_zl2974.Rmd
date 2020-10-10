@@ -79,7 +79,7 @@ instacart %>%
 
 
 # Problem 2
-## Load data
+## Load, clean and display data
 
 ```{r}
 accelerometer =
@@ -127,6 +127,8 @@ skimr::skim_without_charts(accelerometer)
 ```
 \ The original data is a "wider" format data with `r paste(dim(read_csv(here::here("data/accel_data.csv"))),collapse = " x ")` dimension. In order to make the data compatible with machine, pivot_long() is used to make the _activity_*_ of all subjects into columns of _min and activity_. Following instruction, weekend vs weekday's variable is built on _day_ and producing factor columns with levels of `r levels(pull(accelerometer, weekday_vs_weekend))`. With careful examine, the _day_id_'s order is not correct, a new column of _day_id_ follow chronological order generated with _week_ and reordered factors _day_. Also for convenient, _hour_ of the day and _hour_week_ of the week were produced with cumsum() function. All changes resulted the data into a `r paste(dim(accelerometer),collapse = " x ")` dataset.
 
+## Traditional analyses of accelerometer data
+
 * Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
 
 ```{r total_activity, warning=F, message=F}
@@ -140,6 +142,8 @@ accelerometer %>%
 ```
 
 \ A 7 by 5 table is produced. Noticing that the subject had 2 exceptional low activity on Saturday on week 4 and 5 inmediately. Activities in Wendesay and Thurday are more stable as shown in this table.
+
+## inspection activity over the course of the day
 
 * Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 
@@ -204,6 +208,7 @@ accelerometer %>%
 \ To display more information, a heatmap is made. In Week 1, the first few days show less changes in activities between hour compared to the following weeks, especially the first day of week 1, the researcher can look into if the subject have the equipment gear up properly. In the following weeks, subject has his/her first peek of activities around 6-10, and following the second peek around 20. The activities on Saturday on week 4 and 5 show no changes in the heatmap, coherent with the finding in 7 by 5 table. The sunday in weeks 4 and 5 and the Firday in week 4 show less activities, accordinates with the outliers displayed in Fig.2.2.
 
 # Problem 3
+## load, clean and display data
 ```{r load_noaa}
 data("ny_noaa")
 ny_noaa_tidy = ny_noaa %>% 
@@ -219,10 +224,13 @@ ny_noaa_tidy = ny_noaa %>%
     
 skimr::skim_without_charts(ny_noaa_tidy)
 ```
+
 \ The data of NYC's noaa is a tidy `r paste(dim(ny_noaa_tidy),collapse = "x ")` data in term's of structure, collecting data from `r min(pull(ny_noaa_tidy, date))` to 
 `r max(pull(ny_noaa_tidy, date))` of `r n_distinct(pull(ny_noaa_tidy,id))` stations. But missing value in _tmax_ and _tmin_ have exceed 40% and around 20% in _prcp_ and _snow_ columns, in other words, simplily omitting NA will drop at least 40% of the data.
 
 Impossible outlier is observed in _snow_, which most common observation is 0 after omitting Na value, which can be interpret as no snow in that day. Across 3 decades, the mean of highest temperature is 14.0 celcious and mean lowest of 3.03 celcious. 
+
+## max temperature in January and in July
 
 * Make a two-panel plot showing the average max temperature in January and in July in *each station* across years. Is there any observable / interpretable structure? Any outliers?
 
@@ -285,10 +293,11 @@ outlier =
               lower = sum(lower,na.rm = T))
 ```
 
-\ January's average Highest temperatures observed in NYC across all stations differs around 10 degrees across the time. Two exceptional cold years in terms of highest temperature are observed in all station in 
+\ January's average Highest temperatures observed in NYC across all stations differs around 10 degrees across the time and fluctuating in -10 to 10 celcius. Two exceptional cold years in terms of highest temperature are observed in all station in 
 `r ny_noaa_tidy %>% filter(month == 1)%>% group_by(year) %>% summarise(tmax = (mean(tmax,na.rm = T))) %>% mutate(rank = min_rank(tmax)) %>% slice_min(rank,n=2) %>% pull(year) %>% paste(collapse=" and ")`
 . \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. Outliers were observed in January in 3 decades, as well as in July, if define outliers as observations lie 3 times IQR away from 1st and 3rd quarter, we have `r paste(outlier %>% filter(month == 1) %>% select(-month),collapse = ", ")` upper and lower outlier in Janurary and `r paste(outlier %>% filter(month == 7) %>% select(-month),collapse = ", ")` in July.
 
+## Two-panel plot showing temperature and snowfall
 
 ```{r t_n_snow, fig.width=8,fig.height=8}
 plt_1 = 
