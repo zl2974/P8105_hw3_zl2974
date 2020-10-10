@@ -232,8 +232,6 @@ ny_noaa_tidy %>%
   filter(as.numeric(month) %in% c(1)) %>% 
   group_by(month,year,id) %>% 
   summarise(tmax_avg = mean(tmax,na.rm = T)) %>% 
-  mutate(rank  = min_rank(desc(tmax_avg))
-         ) %>%
   drop_na() %>% 
   ggplot(aes(x = year,
              y = tmax_avg,
@@ -256,8 +254,6 @@ plt_2 =
   filter(as.numeric(month) %in% c(7)) %>% 
   group_by(month,year,id) %>% 
   summarise(tmax_avg = mean(tmax,na.rm = T)) %>% 
-  mutate(rank  = min_rank(desc(tmax_avg))
-         ) %>%
   drop_na() %>% 
   ggplot(aes(x = year,
              y = tmax_avg,
@@ -274,11 +270,23 @@ plt_2 =
                                    hjust = 1))
 
 plt_1 / plt_2
+
+outlier = 
+  ny_noaa_tidy %>% 
+    group_by(month,year,id) %>% 
+    summarise(tmax_avg = mean(tmax,na.rm = T)) %>% 
+    ungroup(id) %>% 
+    mutate(upper = tmax_avg >quantile(tmax_avg,.75,na.rm = TRUE)+1.5*IQR(tmax_avg,na.rm = TRUE),
+           lower = tmax_avg <quantile(tmax_avg,.25,na.rm = TRUE)-1.5*IQR(tmax_avg,na.rm = TRUE)) %>%
+    ungroup() %>% 
+    summarise(upper = sum(upper,na.rm = T),
+              lower = sum(lower,na.rm = T))
 ```
 
 \ January's average Highest temperatures observed in NYC across all stations differs around 10 degrees across the time. Two exceptional cold years in terms of highest temperature are observed in all station in 
 `r ny_noaa_tidy %>% filter(month == 1)%>% group_by(year) %>% summarise(tmax = (mean(tmax,na.rm = T))) %>% mutate(rank = min_rank(tmax)) %>% slice_min(rank,n=2) %>% pull(year) %>% paste(collapse=" and ")`
-. \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. 2 lower and 3 upper outliers were observed in January in 3 decades, 8 lower outliers were observed in July.
+. \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. Outliers were observed in January in 3 decades, as well as in July, if define outliers as observations lie 1.5 times IQR away from 1st and 3rd quarter, we have `r paste(outlier,collapse = ", ")` upper and lower outlier.
+
 
 ```{r t_n_snow, fig.width=8,fig.height=8}
 plt_1 = 
