@@ -153,6 +153,7 @@ accelerometer %>%
              color = day,
              group = day_id))+
   stat_smooth(se = F,
+              method = "loess",
               geom="line",
               alpha =0.5)+
   scale_y_continuous(trans = "sqrt",
