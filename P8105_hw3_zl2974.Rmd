@@ -139,7 +139,7 @@ accelerometer %>%
   knitr::kable()
 ```
 
-\ A 7 by 5 table is produced. Noticing that the subject had 2 exceptional low activity on Saturday on week 4 and 5 inmediately.
+\ A 7 by 5 table is produced. Noticing that the subject had 2 exceptional low activity on Saturday on week 4 and 5 inmediately. Activities in Wendesay and Thurday are more stable as shown in this table.
 
 * Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
 
@@ -217,10 +217,12 @@ ny_noaa_tidy = ny_noaa %>%
       snow <0 ~0,
       snow >= 0 ~snow))
     
-skimr::skim_without_charts(ny_noaa_tidy %>% select(-id))
+skimr::skim_without_charts(ny_noaa_tidy)
 ```
 \ The data of NYC's noaa is a tidy `r paste(dim(ny_noaa_tidy),collapse = "x ")` data in term's of structure, collecting data from `r min(pull(ny_noaa_tidy, date))` to 
-`r max(pull(ny_noaa_tidy, date))` of `r n_distinct(pull(ny_noaa_tidy,id))` stations. But missing value in _tmax_ and _tmin_ have exceed 40% and around 20% in _prcp_ and _snow_ columns, in other words, simplily omitting NA will drop at least 40% of the data. Impossible outlier is observed in _snow_, which most common observation is 0 after omitting Na value, which can be interpret as no snow in that day. Across 3 decades, the mean of highest temperature is 14.0 celcious and mean lowest of 3.03 celcious. 
+`r max(pull(ny_noaa_tidy, date))` of `r n_distinct(pull(ny_noaa_tidy,id))` stations. But missing value in _tmax_ and _tmin_ have exceed 40% and around 20% in _prcp_ and _snow_ columns, in other words, simplily omitting NA will drop at least 40% of the data.
+
+Impossible outlier is observed in _snow_, which most common observation is 0 after omitting Na value, which can be interpret as no snow in that day. Across 3 decades, the mean of highest temperature is 14.0 celcious and mean lowest of 3.03 celcious. 
 
 * Make a two-panel plot showing the average max temperature in January and in July in *each station* across years. Is there any observable / interpretable structure? Any outliers?
 
@@ -325,4 +327,4 @@ ny_noaa_tidy %>%
 (plt_2 / plt_1)+ plot_layout(guides = 'collect',widths = 8, heights = 16)
 ```
 
-\ Grouped Boxplot is used to show pattern and extreme tempertures in the whole dataset. Although mean and IQR of the lowest and highest temperatures haven't showed any sign of global warming, extreme lowest temperature is occurring less often in 2000s compared to before 2000. Density ridges with flipped coordinate is use to show snowfall pattern. The kernel density becomes flatten in 2009 and 2010. Also, light snowfall(<=10 mm) is taking higher proportion of total snowfall. So, some evidence favor the theorem of global warming might lying in this data.
+\ Grouped Boxplot is used to show pattern and extreme tempertures in the whole dataset. Although mean and IQR of the lowest and highest temperatures haven't showed any sign of global warming, extreme lowest temperature is occurring less often in 2000s compared to before 2000. Density ridges with flipped coordinate is use to show snowfall pattern. The kernel density becomes flatten in 2009 and 2010. Also, light snowfall(<=10 mm) is taking higher proportion of total snowfall. So, some evidence favor the theorem of global warming might be within this data.
