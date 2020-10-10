@@ -262,7 +262,8 @@ plt_2 =
   geom_point(alpha = 0.3)+
   geom_path(alpha = 0.3)+
   theme(legend.position = 'none')+
-  labs(y = "Average Highest Temperature in July")+
+  labs(y = "Average Highest Temperature in July",
+       caption = "Fig 3.1")+
   scale_x_continuous(breaks = seq(1981,2010,2),
                      limits = c(1981,2010))+
   theme(axis.text.x = element_text(angle = -90,
@@ -273,19 +274,20 @@ plt_1 / plt_2
 
 outlier = 
   ny_noaa_tidy %>% 
+    filter(month %in% c(1,7)) %>% 
     group_by(month,year,id) %>% 
     summarise(tmax_avg = mean(tmax,na.rm = T)) %>% 
     ungroup(id) %>% 
-    mutate(upper = tmax_avg >quantile(tmax_avg,.75,na.rm = TRUE)+1.5*IQR(tmax_avg,na.rm = TRUE),
-           lower = tmax_avg <quantile(tmax_avg,.25,na.rm = TRUE)-1.5*IQR(tmax_avg,na.rm = TRUE)) %>%
-    ungroup() %>% 
+    mutate(upper = tmax_avg >quantile(tmax_avg,.75,na.rm = TRUE)+3*IQR(tmax_avg,na.rm = TRUE),
+           lower = tmax_avg <quantile(tmax_avg,.25,na.rm = TRUE)-3*IQR(tmax_avg,na.rm = TRUE)) %>%
+    ungroup(year) %>% 
     summarise(upper = sum(upper,na.rm = T),
               lower = sum(lower,na.rm = T))
 ```
 
 \ January's average Highest temperatures observed in NYC across all stations differs around 10 degrees across the time. Two exceptional cold years in terms of highest temperature are observed in all station in 
 `r ny_noaa_tidy %>% filter(month == 1)%>% group_by(year) %>% summarise(tmax = (mean(tmax,na.rm = T))) %>% mutate(rank = min_rank(tmax)) %>% slice_min(rank,n=2) %>% pull(year) %>% paste(collapse=" and ")`
-. \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. Outliers were observed in January in 3 decades, as well as in July, if define outliers as observations lie 1.5 times IQR away from 1st and 3rd quarter, we have `r paste(outlier,collapse = ", ")` upper and lower outlier.
+. \ Mean Highest temperatures in July flucturate arond 20 to 30, the measure difference across stations is similar to January. Outliers were observed in January in 3 decades, as well as in July, if define outliers as observations lie 3 times IQR away from 1st and 3rd quarter, we have `r paste(outlier %>% filter(month == 1) %>% select(-month),collapse = ", ")` upper and lower outlier in Janurary and `r paste(outlier %>% filter(month == 7) %>% select(-month),collapse = ", ")` in July.
 
 
 ```{r t_n_snow, fig.width=8,fig.height=8}
